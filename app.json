@@ -1,0 +1,72 @@
+{
+  "expo": {
+    "name": "Too-A-Tee",
+    "slug": "too-a-tee",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tooatee.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "This app needs access to camera to take photos for T-shirt designs.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to photo library to select images for T-shirt designs.",
+        "NSPhotoLibraryAddUsageDescription": "This app needs access to save designed T-shirts to your photo library."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "package": "com.tooatee.app",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "INTERNET"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app accesses your photos to let you share them with your friends."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Too-A-Tee to access your camera to take photos for T-shirt designs."
+        }
+      ],
+      [
+        "expo-media-library",
+        {
+          "photosPermission": "Allow Too-A-Tee to access your photos to save designed T-shirts.",
+          "savePhotosPermission": "Allow Too-A-Tee to save designed T-shirts to your photo library.",
+          "isAccessMediaLocationEnabled": true
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id-here"
+      }
+    },
+    "owner": "your-expo-username"
+  }
+}
