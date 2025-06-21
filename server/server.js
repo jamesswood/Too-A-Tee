@@ -7,20 +7,12 @@ const rateLimit = require('express-rate-limit');
 require('dotenv').config();
 
 // Import routes
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
 const designRoutes = require('./routes/designs');
 const imageRoutes = require('./routes/images');
 const orderRoutes = require('./routes/orders');
 
-// Import Firebase config
-const { initializeFirebase } = require('./config/firebase');
-
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-// Initialize Firebase
-initializeFirebase();
 
 // Security middleware
 app.use(helmet());
@@ -58,8 +50,6 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
 app.use('/api/designs', designRoutes);
 app.use('/api/images', imageRoutes);
 app.use('/api/orders', orderRoutes);

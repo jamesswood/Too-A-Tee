@@ -1,25 +1,83 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
+import { initializeAuth, getReactNativePersistence, getAuth } from 'firebase/auth';
+import { getFirestore, enableNetwork, disableNetwork } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-// Your Firebase configuration
-// Replace these values with your actual Firebase project configuration
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: "your-api-key",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project-id",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "your-sender-id",
-  appId: "your-app-id"
+  apiKey: Constants.expoConfig.extra.firebaseApiKey,
+  authDomain: Constants.expoConfig.extra.firebaseAuthDomain,
+  projectId: Constants.expoConfig.extra.firebaseProjectId,
+  storageBucket: Constants.expoConfig.extra.firebaseStorageBucket,
+  messagingSenderId: Constants.expoConfig.extra.firebaseMessagingSenderId,
+  appId: Constants.expoConfig.extra.firebaseAppId,
+  measurementId: Constants.expoConfig.extra.firebaseMeasurementId,
 };
 
-// Initialize Firebase
+// Initialize Firebase app
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services
-export const auth = getAuth(app);
-export const db = getFirestore(app);
-export const storage = getStorage(app);
+// Initialize services with lazy loading
+let authInstance = null;
+let dbInstance = null;
+let storageInstance = null;
 
+// Lazy initialization functions
+const getAuthInstance = () => {
+  if (!authInstance) {
+    try {
+      authInstance = initializeAuth(app, {
+        persistence: getReactNativePersistence(AsyncStorage),
+      });
+      console.log('Firebase Auth initialized successfully with persistence.');
+    } catch (error) {
+      if (error.code === 'auth/already-initialized') {
+        authInstance = getAuth(app);
+      } else {
+        console.error('Auth initialization error:', error);
+        throw error;
+      }
+    }
+  }
+  return authInstance;
+};
+
+const getDbInstance = () => {
+  if (!dbInstance) {
+    try {
+      dbInstance = getFirestore(app);
+      console.log('Firestore initialized successfully');
+    } catch (error) {
+      console.error('Firestore initialization error:', error);
+      throw error;
+    }
+  }
+  return dbInstance;
+};
+
+const getStorageInstance = () => {
+  if (!storageInstance) {
+    try {
+      storageInstance = getStorage(app);
+      console.log('Firebase Storage initialized successfully');
+    } catch (error) {
+      console.error('Storage initialization error:', error);
+      throw error;
+    }
+  }
+  return storageInstance;
+};
+
+// Network status management
+export const enableFirestoreNetwork = () => enableNetwork(getDbInstance());
+export const disableFirestoreNetwork = () => disableNetwork(getDbInstance());
+
+// Export lazy getters
+export const auth = getAuthInstance;
+export const db = getDbInstance;
+export const storage = getStorageInstance;
+
+// Export the app instance
 export default app; 

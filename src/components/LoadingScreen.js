@@ -1,13 +1,25 @@
 import React from 'react';
-import { View, Text, ActivityIndicator, StyleSheet } from 'react-native';
-import { colors } from '../utils/colors';
-import { fontFamily } from '../utils/fonts';
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  StyleSheet,
+} from 'react-native';
 
-const LoadingScreen = () => {
+const LoadingScreen = ({ 
+  message = 'Loading...', 
+  color = '#007AFF',
+  size = 'large',
+  showMessage = true 
+}) => {
   return (
     <View style={styles.container}>
-      <ActivityIndicator size="large" color={colors.primary} />
-      <Text style={styles.text}>Loading...</Text>
+      <ActivityIndicator size={size} color={color} />
+      {showMessage && (
+        <Text style={[styles.message, { color }]}>
+          {message}
+        </Text>
+      )}
     </View>
   );
 };
@@ -17,13 +29,12 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.white,
+    backgroundColor: '#f5f5f5',
   },
-  text: {
+  message: {
     marginTop: 16,
     fontSize: 16,
-    fontFamily: fontFamily.medium,
-    color: colors.gray,
+    fontWeight: '500',
   },
 });
 

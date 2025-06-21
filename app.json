@@ -51,6 +51,18 @@
           "isAccessMediaLocationEnabled": true
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "your-project-id"
+      },
+      "firebaseApiKey": "AIzaSyCAuWERhFGSueidy7S2zC-1b9Vj_XejCQE",
+      "firebaseAuthDomain": "too-a-tee.firebaseapp.com",
+      "firebaseProjectId": "too-a-tee",
+      "firebaseStorageBucket": "too-a-tee.firebasestorage.app",
+      "firebaseMessagingSenderId": "1033000675806",
+      "firebaseAppId": "1:1033000675806:web:f1d63086f045dad837554f",
+      "firebaseMeasurementId": "G-E7ZS2KB8T1"
+    }
   }
 }

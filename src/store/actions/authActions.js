@@ -43,8 +43,12 @@ export const checkAuthState = () => async (dispatch) => {
   try {
     dispatch(setLoading(true));
     
+    // Add a small delay to ensure Firebase is fully initialized
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     // Listen to auth state changes
     authService.onAuthStateChanged((user) => {
+      console.log('Auth state changed in action:', user ? 'User logged in' : 'User logged out');
       if (user) {
         dispatch(setUser(user));
       } else {
@@ -52,6 +56,7 @@ export const checkAuthState = () => async (dispatch) => {
       }
     });
   } catch (error) {
+    console.error('Error checking auth state:', error);
     dispatch(setError(error.message));
   }
 }; 

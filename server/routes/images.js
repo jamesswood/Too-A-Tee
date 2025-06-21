@@ -1,5 +1,4 @@
 const express = require('express');
-const { authenticateToken } = require('../middleware/auth');
 const ImageService = require('../services/imageService');
 
 const router = express.Router();
@@ -8,7 +7,7 @@ const router = express.Router();
 const upload = ImageService.configureMulter();
 
 // Upload single image
-router.post('/upload', authenticateToken, upload.single('image'), async (req, res) => {
+router.post('/upload', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -17,7 +16,7 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
       });
     }
 
-    const uploadResult = await ImageService.uploadImage(req.file, 'uploads', req.user.uid);
+    const uploadResult = await ImageService.uploadImage(req.file, 'uploads', 'anonymous');
 
     res.status(201).json({
       success: true,
@@ -34,7 +33,7 @@ router.post('/upload', authenticateToken, upload.single('image'), async (req, re
 });
 
 // Upload multiple images
-router.post('/upload-multiple', authenticateToken, upload.array('images', 10), async (req, res) => {
+router.post('/upload-multiple', upload.array('images', 10), async (req, res) => {
   try {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({
@@ -44,7 +43,7 @@ router.post('/upload-multiple', authenticateToken, upload.array('images', 10), a
     }
 
     const uploadPromises = req.files.map(file => 
-      ImageService.uploadImage(file, 'uploads', req.user.uid)
+      ImageService.uploadImage(file, 'uploads', 'anonymous')
     );
 
     const uploadResults = await Promise.all(uploadPromises);
@@ -64,7 +63,7 @@ router.post('/upload-multiple', authenticateToken, upload.array('images', 10), a
 });
 
 // Upload design image
-router.post('/design', authenticateToken, upload.single('image'), async (req, res) => {
+router.post('/design', upload.single('image'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -81,7 +80,7 @@ router.post('/design', authenticateToken, upload.single('image'), async (req, re
       });
     }
 
-    const uploadResult = await ImageService.uploadDesignImage(req.file, req.user.uid, designId);
+    const uploadResult = await ImageService.uploadDesignImage(req.file, 'anonymous', designId);
 
     res.status(201).json({
       success: true,
@@ -98,7 +97,7 @@ router.post('/design', authenticateToken, upload.single('image'), async (req, re
 });
 
 // Upload user avatar
-router.post('/avatar', authenticateToken, upload.single('avatar'), async (req, res) => {
+router.post('/avatar', upload.single('avatar'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({
@@ -107,7 +106,7 @@ router.post('/avatar', authenticateToken, upload.single('avatar'), async (req, r
       });
     }
 
-    const uploadResult = await ImageService.uploadAvatar(req.file, req.user.uid);
+    const uploadResult = await ImageService.uploadAvatar(req.file, 'anonymous');
 
     res.status(201).json({
       success: true,
@@ -124,7 +123,7 @@ router.post('/avatar', authenticateToken, upload.single('avatar'), async (req, r
 });
 
 // Delete image
-router.delete('/:fileName', authenticateToken, async (req, res) => {
+router.delete('/:fileName', async (req, res) => {
   try {
     const { fileName } = req.params;
     
@@ -148,7 +147,7 @@ router.delete('/:fileName', authenticateToken, async (req, res) => {
 });
 
 // Get image metadata
-router.get('/metadata/:fileName', authenticateToken, async (req, res) => {
+router.get('/metadata/:fileName', async (req, res) => {
   try {
     const { fileName } = req.params;
     const decodedFileName = decodeURIComponent(fileName);
@@ -169,7 +168,7 @@ router.get('/metadata/:fileName', authenticateToken, async (req, res) => {
 });
 
 // Generate signed URL for private images
-router.post('/signed-url', authenticateToken, async (req, res) => {
+router.post('/signed-url', async (req, res) => {
   try {
     const { fileName, expirationMinutes = 60 } = req.body;
     
@@ -198,56 +197,21 @@ router.post('/signed-url', authenticateToken, async (req, res) => {
   }
 });
 
-// List user's images
-router.get('/my-images', authenticateToken, async (req, res) => {
+// Get user's images (simplified for now)
+router.get('/my-images', async (req, res) => {
   try {
-    const { folder = 'uploads', limit = 50 } = req.query;
-    const userFolder = `${folder}/${req.user.uid}`;
-    
-    const images = await ImageService.listImages(userFolder, parseInt(limit));
-
+    // For now, return empty array since we're not tracking users
     res.json({
       success: true,
-      data: images,
-      pagination: {
-        limit: parseInt(limit),
-        count: images.length
-      }
+      data: []
     });
   } catch (error) {
-    console.error('Error listing user images:', error);
+    console.error('Error getting user images:', error);
     res.status(500).json({
-      error: 'Failed to list images',
+      error: 'Failed to get images',
       message: 'Failed to retrieve user images'
     });
   }
-});
-
-// Error handling middleware for multer
-router.use((error, req, res, next) => {
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        error: 'File too large',
-        message: 'File size must be less than 10MB'
-      });
-    }
-    if (error.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({
-        error: 'Too many files',
-        message: 'Maximum 10 files allowed per upload'
-      });
-    }
-  }
-  
-  if (error.message === 'Only image files are allowed!') {
-    return res.status(400).json({
-      error: 'Invalid file type',
-      message: 'Only image files (JPEG, PNG, GIF, WebP) are allowed'
-    });
-  }
-
-  next(error);
 });
 
 module.exports = router; 

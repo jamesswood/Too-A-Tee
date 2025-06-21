@@ -1,13 +1,11 @@
 const express = require('express');
 const { body, validationResult } = require('express-validator');
-const { authenticateToken, optionalAuth } = require('../middleware/auth');
 const Design = require('../models/Design');
-const User = require('../models/User');
 
 const router = express.Router();
 
 // Create a new design
-router.post('/', authenticateToken, [
+router.post('/', [
   body('name').isString().trim().isLength({ min: 1, max: 100 }),
   body('description').optional().isString().trim().isLength({ max: 500 }),
   body('elements').isArray(),
@@ -28,14 +26,11 @@ router.post('/', authenticateToken, [
     }
 
     const designData = {
-      userId: req.user.uid,
+      userId: 'anonymous',
       ...req.body
     };
 
     const newDesign = await Design.createDesign(designData);
-    
-    // Increment user's designs created stat
-    await User.incrementStats(req.user.uid, 'designsCreated');
 
     res.status(201).json({
       success: true,
@@ -52,7 +47,7 @@ router.post('/', authenticateToken, [
 });
 
 // Get design by ID
-router.get('/:designId', optionalAuth, async (req, res) => {
+router.get('/:designId', async (req, res) => {
   try {
     const { designId } = req.params;
     const design = await Design.getDesignById(designId);
@@ -64,30 +59,19 @@ router.get('/:designId', optionalAuth, async (req, res) => {
       });
     }
 
-    // Check if user can view this design
-    if (!design.isPublic && design.userId !== req.user?.uid) {
+    // For now, only show public designs
+    if (!design.isPublic) {
       return res.status(403).json({
         error: 'Access denied',
-        message: 'You do not have permission to view this design'
+        message: 'This design is private'
       });
-    }
-
-    // Increment view count if user is authenticated
-    if (req.user && req.user.uid !== design.userId) {
-      await Design.incrementStats(designId, 'views');
-    }
-
-    // Check if user liked this design
-    let isLiked = false;
-    if (req.user) {
-      isLiked = await Design.isLikedByUser(designId, req.user.uid);
     }
 
     res.json({
       success: true,
       data: {
         ...design,
-        isLiked
+        isLiked: false
       }
     });
   } catch (error) {
@@ -100,7 +84,7 @@ router.get('/:designId', optionalAuth, async (req, res) => {
 });
 
 // Update design
-router.put('/:designId', authenticateToken, [
+router.put('/:designId', [
   body('name').optional().isString().trim().isLength({ min: 1, max: 100 }),
   body('description').optional().isString().trim().isLength({ max: 500 }),
   body('elements').optional().isArray(),
@@ -131,7 +115,8 @@ router.put('/:designId', authenticateToken, [
       });
     }
 
-    if (design.userId !== req.user.uid) {
+    // For now, allow updates to anonymous designs
+    if (design.userId !== 'anonymous') {
       return res.status(403).json({
         error: 'Access denied',
         message: 'You do not have permission to update this design'
@@ -155,11 +140,11 @@ router.put('/:designId', authenticateToken, [
 });
 
 // Delete design
-router.delete('/:designId', authenticateToken, async (req, res) => {
+router.delete('/:designId', async (req, res) => {
   try {
     const { designId } = req.params;
     
-    await Design.deleteDesign(designId, req.user.uid);
+    await Design.deleteDesign(designId, 'anonymous');
 
     res.json({
       success: true,
@@ -189,22 +174,17 @@ router.delete('/:designId', authenticateToken, async (req, res) => {
   }
 });
 
-// Get user's designs
-router.get('/user/my-designs', authenticateToken, async (req, res) => {
+// Get user's designs (simplified for now)
+router.get('/user/my-designs', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 20;
-    const offset = parseInt(req.query.offset) || 0;
-    const status = req.query.status || null;
-
-    const designs = await Design.getUserDesigns(req.user.uid, limit, offset, status);
-
+    // For now, return empty array since we're not tracking users
     res.json({
       success: true,
-      data: designs,
+      data: [],
       pagination: {
-        limit,
-        offset,
-        count: designs.length
+        limit: 20,
+        offset: 0,
+        total: 0
       }
     });
   } catch (error) {
@@ -216,48 +196,17 @@ router.get('/user/my-designs', authenticateToken, async (req, res) => {
   }
 });
 
-// Get public designs
-router.get('/public/featured', async (req, res) => {
+// Get all public designs
+router.get('/', async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 20;
     const offset = parseInt(req.query.offset) || 0;
+    const sortBy = req.query.sortBy || 'createdAt';
+    const sortOrder = req.query.sortOrder || 'desc';
     const category = req.query.category || null;
+    const search = req.query.search || null;
 
-    const designs = await Design.getPublicDesigns(limit, offset, category);
-
-    res.json({
-      success: true,
-      data: designs,
-      pagination: {
-        limit,
-        offset,
-        count: designs.length
-      }
-    });
-  } catch (error) {
-    console.error('Error getting public designs:', error);
-    res.status(500).json({
-      error: 'Internal server error',
-      message: 'Failed to retrieve public designs'
-    });
-  }
-});
-
-// Search designs
-router.get('/search', async (req, res) => {
-  try {
-    const { q: searchTerm } = req.query;
-    const limit = parseInt(req.query.limit) || 20;
-    const offset = parseInt(req.query.offset) || 0;
-
-    if (!searchTerm) {
-      return res.status(400).json({
-        error: 'Search term required',
-        message: 'Please provide a search term'
-      });
-    }
-
-    const designs = await Design.searchDesigns(searchTerm, limit, offset);
+    const designs = await Design.getPublicDesigns(limit, offset, sortBy, sortOrder, category, search);
 
     res.json({
       success: true,
@@ -265,60 +214,58 @@ router.get('/search', async (req, res) => {
       pagination: {
         limit,
         offset,
-        count: designs.length
+        total: designs.length
       }
     });
   } catch (error) {
-    console.error('Error searching designs:', error);
+    console.error('Error getting designs:', error);
     res.status(500).json({
       error: 'Internal server error',
-      message: 'Failed to search designs'
+      message: 'Failed to retrieve designs'
     });
   }
 });
 
-// Like/unlike design
-router.post('/:designId/like', authenticateToken, async (req, res) => {
+// Like a design (simplified for now)
+router.post('/:designId/like', async (req, res) => {
   try {
     const { designId } = req.params;
-    const design = await Design.getDesignById(designId);
     
-    if (!design) {
+    // For now, just return success without actually liking
+    res.json({
+      success: true,
+      message: 'Design liked successfully'
+    });
+  } catch (error) {
+    console.error('Error liking design:', error);
+    res.status(500).json({
+      error: 'Internal server error',
+      message: 'Failed to like design'
+    });
+  }
+});
+
+// Duplicate a design
+router.post('/:designId/duplicate', async (req, res) => {
+  try {
+    const { designId } = req.params;
+    const originalDesign = await Design.getDesignById(designId);
+    
+    if (!originalDesign) {
       return res.status(404).json({
         error: 'Design not found',
         message: 'The requested design does not exist'
       });
     }
 
-    if (!design.isPublic && design.userId !== req.user.uid) {
+    if (!originalDesign.isPublic) {
       return res.status(403).json({
         error: 'Access denied',
-        message: 'You do not have permission to like this design'
+        message: 'Cannot duplicate private design'
       });
     }
 
-    const result = await Design.toggleLike(designId, req.user.uid);
-
-    res.json({
-      success: true,
-      message: result.liked ? 'Design liked successfully' : 'Design unliked successfully',
-      data: result
-    });
-  } catch (error) {
-    console.error('Error toggling like:', error);
-    res.status(500).json({
-      error: 'Internal server error',
-      message: 'Failed to toggle like'
-    });
-  }
-});
-
-// Duplicate design
-router.post('/:designId/duplicate', authenticateToken, async (req, res) => {
-  try {
-    const { designId } = req.params;
-    
-    const duplicatedDesign = await Design.duplicateDesign(designId, req.user.uid);
+    const duplicatedDesign = await Design.duplicateDesign(designId, 'anonymous');
 
     res.status(201).json({
       success: true,
@@ -327,42 +274,9 @@ router.post('/:designId/duplicate', authenticateToken, async (req, res) => {
     });
   } catch (error) {
     console.error('Error duplicating design:', error);
-    
-    if (error.message === 'Design not found') {
-      return res.status(404).json({
-        error: 'Design not found',
-        message: 'The requested design does not exist'
-      });
-    }
-    
-    if (error.message === 'Cannot duplicate private design') {
-      return res.status(403).json({
-        error: 'Access denied',
-        message: 'You cannot duplicate this private design'
-      });
-    }
-
     res.status(500).json({
       error: 'Internal server error',
       message: 'Failed to duplicate design'
-    });
-  }
-});
-
-// Get design categories
-router.get('/categories', async (req, res) => {
-  try {
-    const categories = await Design.getCategories();
-
-    res.json({
-      success: true,
-      data: categories
-    });
-  } catch (error) {
-    console.error('Error getting categories:', error);
-    res.status(500).json({
-      error: 'Internal server error',
-      message: 'Failed to retrieve categories'
     });
   }
 });

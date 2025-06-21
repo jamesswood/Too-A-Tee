@@ -1,108 +1,62 @@
 import { 
   createUserWithEmailAndPassword, 
-  signInWithEmailAndPassword,
-  signOut,
-  updateProfile,
-  onAuthStateChanged
+  signInWithEmailAndPassword, 
+  signOut, 
+  onAuthStateChanged 
 } from 'firebase/auth';
 import { auth } from '../config/firebase';
 
-class AuthService {
-  // Register new user
-  async register(email, password, name) {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Update user profile with name
-      await updateProfile(user, {
-        displayName: name
-      });
-
-      return {
-        user: {
-          uid: user.uid,
-          email: user.email,
-          displayName: name,
-          photoURL: user.photoURL
-        }
-      };
-    } catch (error) {
-      throw this.handleAuthError(error);
-    }
+// Register with email and password
+export const registerUser = async (email, password) => {
+  try {
+    console.log('Registering user with Firebase auth');
+    const authInstance = auth();
+    const userCredential = await createUserWithEmailAndPassword(authInstance, email, password);
+    console.log('Registration successful:', userCredential);
+    return { success: true, user: userCredential.user };
+  } catch (error) {
+    console.error('Registration error:', error);
+    return { success: false, error: error.message };
   }
+};
 
-  // Login user
-  async login(email, password) {
-    try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      return {
-        user: {
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL
-        }
-      };
-    } catch (error) {
-      throw this.handleAuthError(error);
-    }
+// Login with email and password
+export const loginUser = async (email, password) => {
+  try {
+    console.log('Logging in user with Firebase auth');
+    const authInstance = auth();
+    const userCredential = await signInWithEmailAndPassword(authInstance, email, password);
+    console.log('Login successful:', userCredential);
+    return { success: true, user: userCredential.user };
+  } catch (error) {
+    console.error('Login error:', error);
+    return { success: false, error: error.message };
   }
+};
 
-  // Logout user
-  async logout() {
-    try {
-      await signOut(auth);
-      return { success: true };
-    } catch (error) {
-      throw this.handleAuthError(error);
-    }
+// Logout
+export const logoutUser = async () => {
+  try {
+    console.log('Logging out user with Firebase auth');
+    const authInstance = auth();
+    await signOut(authInstance);
+    console.log('Logout successful');
+    return { success: true };
+  } catch (error) {
+    console.error('Logout error:', error);
+    return { success: false, error: error.message };
   }
+};
 
-  // Get current user
-  getCurrentUser() {
-    return auth.currentUser;
+// Listen to auth state changes
+export const onAuthStateChange = (callback) => {
+  try {
+    console.log('Setting up auth state listener with Firebase auth');
+    const authInstance = auth();
+    return onAuthStateChanged(authInstance, callback);
+  } catch (error) {
+    console.error('Auth state change error:', error);
+    // Return a dummy unsubscribe function
+    return () => {};
   }
-
-  // Listen to auth state changes
-  onAuthStateChanged(callback) {
-    return onAuthStateChanged(auth, (user) => {
-      if (user) {
-        callback({
-          uid: user.uid,
-          email: user.email,
-          displayName: user.displayName,
-          photoURL: user.photoURL
-        });
-      } else {
-        callback(null);
-      }
-    });
-  }
-
-  // Handle Firebase auth errors
-  handleAuthError(error) {
-    switch (error.code) {
-      case 'auth/email-already-in-use':
-        return new Error('An account with this email already exists.');
-      case 'auth/invalid-email':
-        return new Error('Please enter a valid email address.');
-      case 'auth/weak-password':
-        return new Error('Password should be at least 6 characters long.');
-      case 'auth/user-not-found':
-        return new Error('No account found with this email address.');
-      case 'auth/wrong-password':
-        return new Error('Incorrect password.');
-      case 'auth/too-many-requests':
-        return new Error('Too many failed attempts. Please try again later.');
-      case 'auth/network-request-failed':
-        return new Error('Network error. Please check your connection.');
-      default:
-        return new Error('An error occurred. Please try again.');
-    }
-  }
-}
-
-export default new AuthService(); 
+}; 

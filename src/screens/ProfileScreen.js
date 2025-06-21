@@ -9,17 +9,16 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '../utils/colors';
 import { fontFamily } from '../utils/fonts';
 import Header from '../components/Header';
-import { logoutUser } from '../store/actions/authActions';
+import { logoutUser } from '../services/authService';
+import { useAuth } from '../contexts/AuthContext';
 
 const ProfileScreen = ({ navigation }) => {
-  const dispatch = useDispatch();
-  const { user } = useSelector((state) => state.user);
+  const { user } = useAuth();
 
   const handleLogout = () => {
     Alert.alert(
@@ -35,8 +34,16 @@ const ProfileScreen = ({ navigation }) => {
           style: 'destructive',
           onPress: async () => {
             try {
-              await dispatch(logoutUser());
+              console.log('User initiated logout');
+              const result = await logoutUser();
+              if (result.success) {
+                console.log('Logout successful - user will be redirected to login');
+                // The auth state change will automatically redirect the user
+              } else {
+                Alert.alert('Error', 'Failed to logout. Please try again.');
+              }
             } catch (error) {
+              console.error('Logout error:', error);
               Alert.alert('Error', 'Failed to logout. Please try again.');
             }
           },
@@ -60,13 +67,14 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
-                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
+                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 
+                 user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
               </Text>
             </View>
           </View>
           
           <Text style={styles.userName}>
-            {user?.displayName || 'Guest User'}
+            {user?.displayName || user?.email || 'Guest User'}
           </Text>
           <Text style={styles.userEmail}>
             {user?.email || 'guest@example.com'}
