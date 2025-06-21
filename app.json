@@ -56,13 +56,13 @@
       "eas": {
         "projectId": "your-project-id"
       },
-      "firebaseApiKey": "AIzaSyCAuWERhFGSueidy7S2zC-1b9Vj_XejCQE",
-      "firebaseAuthDomain": "too-a-tee.firebaseapp.com",
-      "firebaseProjectId": "too-a-tee",
-      "firebaseStorageBucket": "too-a-tee.firebasestorage.app",
-      "firebaseMessagingSenderId": "1033000675806",
-      "firebaseAppId": "1:1033000675806:web:f1d63086f045dad837554f",
-      "firebaseMeasurementId": "G-E7ZS2KB8T1"
+      "firebaseApiKey": "${FIREBASE_API_KEY}",
+      "firebaseAuthDomain": "${FIREBASE_AUTH_DOMAIN}",
+      "firebaseProjectId": "${FIREBASE_PROJECT_ID}",
+      "firebaseStorageBucket": "${FIREBASE_STORAGE_BUCKET}",
+      "firebaseMessagingSenderId": "${FIREBASE_MESSAGING_SENDER_ID}",
+      "firebaseAppId": "${FIREBASE_APP_ID}",
+      "firebaseMeasurementId": "${FIREBASE_MEASUREMENT_ID}"
     }
   }
 }
