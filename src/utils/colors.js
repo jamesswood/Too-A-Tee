@@ -21,6 +21,7 @@ export const colors = {
   backgroundSecondary: '#F8F9FA',
   
   // Text colors
+  text: '#000000',
   textPrimary: '#000000',
   textSecondary: '#8E8E93',
   textTertiary: '#C7C7CC',

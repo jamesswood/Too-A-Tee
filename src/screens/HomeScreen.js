@@ -8,10 +8,10 @@ import {
   Image,
   SafeAreaView,
   StatusBar,
+  FlatList,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
-import { Grid } from 'react-native-super-grid';
 
 import { colors } from '../utils/colors';
 import { fontFamily } from '../utils/fonts';
@@ -75,6 +75,15 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate('Design');
   };
 
+  const renderDesignItem = ({ item }) => (
+    <View style={styles.designItem}>
+      <DesignCard
+        design={item}
+        onPress={() => handleDesignPress(item)}
+      />
+    </View>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
@@ -108,17 +117,15 @@ const HomeScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
           
-          <Grid
+          <FlatList
             data={featuredDesigns}
-            renderItem={({ item }) => (
-              <DesignCard
-                design={item}
-                onPress={() => handleDesignPress(item)}
-              />
-            )}
+            renderItem={renderDesignItem}
             keyExtractor={(item) => item.id}
-            spacing={16}
-            itemDimension={160}
+            horizontal={false}
+            numColumns={2}
+            showsVerticalScrollIndicator={false}
+            scrollEnabled={false}
+            contentContainerStyle={styles.designsGrid}
           />
         </View>
 
@@ -129,17 +136,15 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.sectionTitle}>Your Recent Creations</Text>
             </View>
             
-            <Grid
+            <FlatList
               data={userDesigns.slice(0, 4)}
-              renderItem={({ item }) => (
-                <DesignCard
-                  design={item}
-                  onPress={() => handleDesignPress(item)}
-                />
-              )}
+              renderItem={renderDesignItem}
               keyExtractor={(item) => item.id}
-              spacing={16}
-              itemDimension={160}
+              horizontal={false}
+              numColumns={2}
+              showsVerticalScrollIndicator={false}
+              scrollEnabled={false}
+              contentContainerStyle={styles.designsGrid}
             />
           </View>
         )}
@@ -199,7 +204,7 @@ const styles = StyleSheet.create({
   createButtonText: {
     color: colors.white,
     fontSize: 16,
-    fontFamily: fontFamily.semiBold,
+    fontFamily: fontFamily.medium,
     marginLeft: 8,
   },
   section: {
@@ -212,14 +217,22 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 20,
-    fontFamily: fontFamily.semiBold,
-    color: colors.textPrimary,
+    fontSize: 24,
+    fontFamily: fontFamily.bold,
+    color: colors.text,
   },
   seeAllText: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: fontFamily.medium,
     color: colors.primary,
+  },
+  designsGrid: {
+    paddingHorizontal: 0,
+  },
+  designItem: {
+    flex: 1,
+    marginHorizontal: 4,
+    marginBottom: 8,
   },
   categoriesGrid: {
     flexDirection: 'row',
@@ -228,16 +241,24 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: '48%',
-    backgroundColor: colors.lightGray,
+    backgroundColor: colors.white,
     padding: 16,
     borderRadius: 12,
     marginBottom: 12,
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   categoryText: {
     fontSize: 16,
     fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
+    color: colors.text,
   },
 });
 
