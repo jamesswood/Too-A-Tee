@@ -7,24 +7,42 @@ import {
   StatusBar,
   TouchableOpacity,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
+import { Ionicons } from '@expo/vector-icons';
 
 import { colors } from '../utils/colors';
 import { fontFamily } from '../utils/fonts';
 import Header from '../components/Header';
-import { logout } from '../store/slices/userSlice';
+import { logoutUser } from '../store/actions/authActions';
 
 const ProfileScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.user);
 
   const handleLogout = () => {
-    dispatch(logout());
-    navigation.reset({
-      index: 0,
-      routes: [{ name: 'Home' }],
-    });
+    Alert.alert(
+      'Logout',
+      'Are you sure you want to logout?',
+      [
+        {
+          text: 'Cancel',
+          style: 'cancel',
+        },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await dispatch(logoutUser());
+            } catch (error) {
+              Alert.alert('Error', 'Failed to logout. Please try again.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -42,13 +60,13 @@ const ProfileScreen = ({ navigation }) => {
           <View style={styles.avatarContainer}>
             <View style={styles.avatar}>
               <Text style={styles.avatarText}>
-                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 'U'}
               </Text>
             </View>
           </View>
           
           <Text style={styles.userName}>
-            {user?.name || 'Guest User'}
+            {user?.displayName || 'Guest User'}
           </Text>
           <Text style={styles.userEmail}>
             {user?.email || 'guest@example.com'}
@@ -57,32 +75,38 @@ const ProfileScreen = ({ navigation }) => {
 
         <View style={styles.menuSection}>
           <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="person-outline" size={20} color={colors.gray} />
             <Text style={styles.menuItemText}>Edit Profile</Text>
-            <Text style={styles.menuItemArrow}>›</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="receipt-outline" size={20} color={colors.gray} />
             <Text style={styles.menuItemText}>Order History</Text>
-            <Text style={styles.menuItemArrow}>›</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="heart-outline" size={20} color={colors.gray} />
             <Text style={styles.menuItemText}>Saved Designs</Text>
-            <Text style={styles.menuItemArrow}>›</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="settings-outline" size={20} color={colors.gray} />
             <Text style={styles.menuItemText}>Settings</Text>
-            <Text style={styles.menuItemArrow}>›</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
           </TouchableOpacity>
           
           <TouchableOpacity style={styles.menuItem}>
+            <Ionicons name="help-circle-outline" size={20} color={colors.gray} />
             <Text style={styles.menuItemText}>Help & Support</Text>
-            <Text style={styles.menuItemArrow}>›</Text>
+            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <Ionicons name="log-out-outline" size={20} color={colors.white} />
           <Text style={styles.logoutButtonText}>Logout</Text>
         </TouchableOpacity>
       </ScrollView>
@@ -158,26 +182,26 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.lightGray,
   },
   menuItemText: {
+    flex: 1,
     fontSize: 16,
     fontFamily: fontFamily.medium,
     color: colors.textPrimary,
-  },
-  menuItemArrow: {
-    fontSize: 18,
-    fontFamily: fontFamily.medium,
-    color: colors.textSecondary,
+    marginLeft: 12,
   },
   logoutButton: {
     backgroundColor: colors.error,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingVertical: 16,
     borderRadius: 8,
-    alignItems: 'center',
     marginBottom: 32,
   },
   logoutButtonText: {
     color: colors.white,
     fontSize: 16,
     fontFamily: fontFamily.bold,
+    marginLeft: 8,
   },
 });
 
