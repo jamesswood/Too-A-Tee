@@ -139,7 +139,7 @@ export const useDesigns = (filters = {}, limitCount = 20) => {
 
   useEffect(() => {
     fetchDesigns(true);
-  }, [filters]);
+  }, [JSON.stringify(filters)]);
 
   const loadMore = useCallback(() => {
     if (!loading && hasMore) {
@@ -170,6 +170,84 @@ export const useUserDesigns = (userId) => {
 export const usePublicDesigns = () => {
   return useDesigns({ isPublic: true, isActive: true });
 };
+
+export const useAllDesigns = () => {
+  const [designs, setDesigns] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    const unsubscribe = subscribeToDesigns(
+      (designsData) => {
+        setDesigns(designsData);
+        setLoading(false);
+      },
+      { orderBy: ['createdAt', 'desc'] } // Fetch all, sorted by most recent
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  return { designs, loading, error };
+};
+
+export const useDesignsWithCreators = () => {
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    setLoading(true);
+    setError(null);
+
+    // 1. Subscribe to all designs, sorted by creation date
+    const unsubscribe = subscribeToDesigns(
+      {}, // empty filters to get all designs
+      async (designsData) => {
+        try {
+          if (designsData.length === 0) {
+            setPosts([]);
+            setLoading(false);
+            return;
+          }
+
+          // 2. Get unique creator IDs from the designs
+          const creatorIds = [...new Set(designsData.map(d => d.creatorId))];
+          
+          // 3. Fetch user data for all unique creators
+          const userPromises = creatorIds.map(id => getUser(id));
+          const userResults = await Promise.all(userPromises);
+
+          // 4. Create a map of creatorId -> creatorData for easy lookup
+          const creatorsMap = userResults.reduce((acc, result) => {
+            if (result.success) {
+              acc[result.data.uid] = result.data;
+            }
+            return acc;
+          }, {});
+
+          // 5. Combine designs with their creator's data
+          const populatedPosts = designsData.map(design => ({
+            ...design,
+            creator: creatorsMap[design.creatorId] || null,
+          }));
+
+          setPosts(populatedPosts);
+          setLoading(false);
+        } catch (err) {
+          console.error('Error in useDesignsWithCreators:', err);
+          setError(err.message);
+          setLoading(false);
+        }
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  return { posts, loading, error };
+}
 
 // ==================== ORDER HOOKS ====================
 

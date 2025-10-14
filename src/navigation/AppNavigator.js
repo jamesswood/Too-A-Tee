@@ -10,6 +10,7 @@ import CartScreen from '../screens/CartScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import CheckoutScreen from '../screens/CheckoutScreen';
 import OrderConfirmationScreen from '../screens/OrderConfirmationScreen';
+import CreateDesignScreen from '../screens/CreateDesignScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -27,6 +28,12 @@ const DesignStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="DesignMain" component={DesignScreen} />
     <Stack.Screen name="Preview" component={PreviewScreen} />
+  </Stack.Navigator>
+);
+
+const CreateStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="CreateMain" component={CreateDesignScreen} />
   </Stack.Navigator>
 );
 
@@ -54,7 +61,9 @@ const AppNavigator = () => {
           if (route.name === 'Home') {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Design') {
-            iconName = focused ? 'create' : 'create-outline';
+            iconName = focused ? 'shirt' : 'shirt-outline';
+          } else if (route.name === 'Create') {
+            iconName = focused ? 'add-circle' : 'add-circle-outline';
           } else if (route.name === 'Cart') {
             iconName = focused ? 'cart' : 'cart-outline';
           } else if (route.name === 'Profile') {
@@ -84,6 +93,11 @@ const AppNavigator = () => {
       <Tab.Screen 
         name="Design" 
         component={DesignStack}
+        options={{ title: 'Designs' }}
+      />
+      <Tab.Screen 
+        name="Create" 
+        component={CreateStack}
         options={{ title: 'Create' }}
       />
       <Tab.Screen 

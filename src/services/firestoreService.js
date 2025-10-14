@@ -26,7 +26,11 @@ export const COLLECTIONS = {
   ORDERS: 'orders',
   CATEGORIES: 'categories',
   FAVORITES: 'favorites',
-  TEMPLATES: 'templates'
+  TEMPLATES: 'templates',
+  LIKES: 'likes',
+  COMMENTS: 'comments',
+  FOLLOWERS: 'followers',
+  FOLLOWING: 'following',
 };
 
 // Error handling utility
@@ -125,24 +129,24 @@ export const deleteUser = async (uid) => {
 
 // ==================== DESIGN OPERATIONS ====================
 
-export const createDesign = async (designData, userId) => {
+export const createDesign = async (designData) => {
   try {
+    const { creatorId, imageUrl, title, description, privacy } = designData;
     const dbInstance = db();
+    
     const designDoc = {
-      ...designData,
-      creatorId: userId,
+      creatorId,
+      imageUrl,
+      title,
+      description,
+      privacy, // 'public', 'private', or 'followers'
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
-      isActive: true,
-      isPublic: designData.isPublic || false,
       stats: {
-        views: 0,
         likes: 0,
+        comments: 0,
         shares: 0,
-        purchases: 0
       },
-      tags: designData.tags || [],
-      category: designData.category || 'general'
     };
 
     const docRef = await addDoc(collection(dbInstance, COLLECTIONS.DESIGNS), designDoc);
@@ -493,5 +497,113 @@ export const purchaseDesign = async (designId, userId, orderData) => {
     return successResponse(result);
   } catch (error) {
     return handleFirestoreError(error, 'purchaseDesign');
+  }
+};
+
+// ==================== SOCIAL OPERATIONS ====================
+
+export const likeDesign = async (designId, userId) => {
+  try {
+    const dbInstance = db();
+    const likeRef = doc(dbInstance, COLLECTIONS.DESIGNS, designId, COLLECTIONS.LIKES, userId);
+    const designRef = doc(dbInstance, COLLECTIONS.DESIGNS, designId);
+
+    await runTransaction(dbInstance, async (transaction) => {
+      const designDoc = await transaction.get(designRef);
+      if (!designDoc.exists()) {
+        throw 'Design does not exist!';
+      }
+      const newLikesCount = (designDoc.data().stats.likes || 0) + 1;
+      transaction.update(designRef, { 'stats.likes': newLikesCount });
+      transaction.set(likeRef, { userId, createdAt: serverTimestamp() });
+    });
+
+    return successResponse({ message: 'Design liked successfully' });
+  } catch (error) {
+    return handleFirestoreError(error, 'likeDesign');
+  }
+};
+
+export const unlikeDesign = async (designId, userId) => {
+  try {
+    const dbInstance = db();
+    const likeRef = doc(dbInstance, COLLECTIONS.DESIGNS, designId, COLLECTIONS.LIKES, userId);
+    const designRef = doc(dbInstance, COLLECTIONS.DESIGNS, designId);
+
+    await runTransaction(dbInstance, async (transaction) => {
+      const designDoc = await transaction.get(designRef);
+      if (!designDoc.exists()) {
+        throw 'Design does not exist!';
+      }
+      const newLikesCount = Math.max(0, (designDoc.data().stats.likes || 0) - 1);
+      transaction.update(designRef, { 'stats.likes': newLikesCount });
+      transaction.delete(likeRef);
+    });
+
+    return successResponse({ message: 'Design unliked successfully' });
+  } catch (error) {
+    return handleFirestoreError(error, 'unlikeDesign');
+  }
+};
+
+export const addComment = async (designId, userId, text) => {
+  try {
+    const dbInstance = db();
+    const commentRef = collection(dbInstance, COLLECTIONS.DESIGNS, designId, COLLECTIONS.COMMENTS);
+    const designRef = doc(dbInstance, COLLECTIONS.DESIGNS, designId);
+    
+    const commentDoc = {
+      userId,
+      text,
+      createdAt: serverTimestamp(),
+    };
+
+    await runTransaction(dbInstance, async (transaction) => {
+      const designDoc = await transaction.get(designRef);
+      if (!designDoc.exists()) {
+        throw 'Design does not exist!';
+      }
+      const newCommentsCount = (designDoc.data().stats.comments || 0) + 1;
+      transaction.update(designRef, { 'stats.comments': newCommentsCount });
+      addDoc(commentRef, commentDoc); // This is not transactional, but acceptable for this case
+    });
+    
+    return successResponse({ ...commentDoc });
+  } catch (error) {
+    return handleFirestoreError(error, 'addComment');
+  }
+};
+
+export const followUser = async (currentUserId, targetUserId) => {
+  try {
+    const dbInstance = db();
+    const followingRef = doc(dbInstance, COLLECTIONS.USERS, currentUserId, COLLECTIONS.FOLLOWING, targetUserId);
+    const followersRef = doc(dbInstance, COLLECTIONS.USERS, targetUserId, COLLECTIONS.FOLLOWERS, currentUserId);
+
+    await writeBatch(dbInstance)
+      .set(followingRef, { userId: targetUserId, createdAt: serverTimestamp() })
+      .set(followersRef, { userId: currentUserId, createdAt: serverTimestamp() })
+      .commit();
+
+    return successResponse({ message: 'User followed successfully' });
+  } catch (error) {
+    return handleFirestoreError(error, 'followUser');
+  }
+};
+
+export const unfollowUser = async (currentUserId, targetUserId) => {
+  try {
+    const dbInstance = db();
+    const followingRef = doc(dbInstance, COLLECTIONS.USERS, currentUserId, COLLECTIONS.FOLLOWING, targetUserId);
+    const followersRef = doc(dbInstance, COLLECTIONS.USERS, targetUserId, COLLECTIONS.FOLLOWERS, currentUserId);
+
+    await writeBatch(dbInstance)
+      .delete(followingRef)
+      .delete(followersRef)
+      .commit();
+
+    return successResponse({ message: 'User unfollowed successfully' });
+  } catch (error) {
+    return handleFirestoreError(error, 'unfollowUser');
   }
 }; 

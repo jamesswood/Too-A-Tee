@@ -4,120 +4,92 @@ import {
   Text,
   StyleSheet,
   SafeAreaView,
-  StatusBar,
   TouchableOpacity,
-  ScrollView,
   Alert,
+  Image,
+  FlatList,
+  Dimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-import { colors } from '../utils/colors';
-import { fontFamily } from '../utils/fonts';
-import Header from '../components/Header';
-import { logoutUser } from '../services/authService';
 import { useAuth } from '../contexts/AuthContext';
+import { useUserDesigns } from '../hooks/useFirestore';
+import { logoutUser } from '../services/authService';
+import LoadingScreen from '../components/LoadingScreen';
+
+const { width } = Dimensions.get('window');
+const numColumns = 3;
+const itemSize = width / numColumns;
 
 const ProfileScreen = ({ navigation }) => {
   const { user } = useAuth();
+  // For now, this shows the current user's profile. We can adapt it for other users later.
+  const { designs, loading: designsLoading } = useUserDesigns(user?.uid);
 
   const handleLogout = () => {
-    Alert.alert(
-      'Logout',
-      'Are you sure you want to logout?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              console.log('User initiated logout');
-              const result = await logoutUser();
-              if (result.success) {
-                console.log('Logout successful - user will be redirected to login');
-                // The auth state change will automatically redirect the user
-              } else {
-                Alert.alert('Error', 'Failed to logout. Please try again.');
-              }
-            } catch (error) {
-              console.error('Logout error:', error);
-              Alert.alert('Error', 'Failed to logout. Please try again.');
-            }
-          },
-        },
-      ]
-    );
+    Alert.alert('Logout', 'Are you sure you want to logout?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Logout',
+        style: 'destructive',
+        onPress: () => logoutUser(),
+      },
+    ]);
   };
 
+  const renderHeader = () => (
+    <>
+      <View style={styles.profileInfoContainer}>
+        <Image
+          style={styles.avatar}
+          source={{ uri: user?.photoURL || 'https://via.placeholder.com/150' }}
+        />
+        <View style={styles.statsContainer}>
+          <View style={styles.stat}>
+            <Text style={styles.statNumber}>{designs.length}</Text>
+            <Text style={styles.statLabel}>Posts</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statLabel}>Followers</Text>
+          </View>
+          <View style={styles.stat}>
+            <Text style={styles.statNumber}>0</Text>
+            <Text style={styles.statLabel}>Following</Text>
+          </View>
+        </View>
+      </View>
+      <Text style={styles.displayName}>{user?.displayName || user?.email}</Text>
+      {/* Bio would go here */}
+
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.button} onPress={() => alert('Edit Profile clicked!')}>
+          <Text style={styles.buttonText}>Edit Profile</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={handleLogout}>
+          <Text style={styles.buttonText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
+  if (designsLoading) {
+    return <LoadingScreen message="Loading Profile..." />;
+  }
+  
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      
-      <Header 
-        title="Profile"
-        showBack={true}
-        onBackPress={() => navigation.goBack()}
+      <FlatList
+        data={designs}
+        renderItem={({ item }) => (
+          <TouchableOpacity style={styles.gridItem}>
+            <Image source={{ uri: item.imageUrl }} style={styles.gridImage} />
+          </TouchableOpacity>
+        )}
+        keyExtractor={(item) => item.id}
+        numColumns={numColumns}
+        ListHeaderComponent={renderHeader}
+        showsVerticalScrollIndicator={false}
       />
-
-      <ScrollView style={styles.content}>
-        <View style={styles.profileSection}>
-          <View style={styles.avatarContainer}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>
-                {user?.displayName ? user.displayName.charAt(0).toUpperCase() : 
-                 user?.email ? user.email.charAt(0).toUpperCase() : 'U'}
-              </Text>
-            </View>
-          </View>
-          
-          <Text style={styles.userName}>
-            {user?.displayName || user?.email || 'Guest User'}
-          </Text>
-          <Text style={styles.userEmail}>
-            {user?.email || 'guest@example.com'}
-          </Text>
-        </View>
-
-        <View style={styles.menuSection}>
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="person-outline" size={20} color={colors.gray} />
-            <Text style={styles.menuItemText}>Edit Profile</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="receipt-outline" size={20} color={colors.gray} />
-            <Text style={styles.menuItemText}>Order History</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="heart-outline" size={20} color={colors.gray} />
-            <Text style={styles.menuItemText}>Saved Designs</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="settings-outline" size={20} color={colors.gray} />
-            <Text style={styles.menuItemText}>Settings</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity style={styles.menuItem}>
-            <Ionicons name="help-circle-outline" size={20} color={colors.gray} />
-            <Text style={styles.menuItemText}>Help & Support</Text>
-            <Ionicons name="chevron-forward" size={20} color={colors.gray} />
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-          <Ionicons name="log-out-outline" size={20} color={colors.white} />
-          <Text style={styles.logoutButtonText}>Logout</Text>
-        </TouchableOpacity>
-      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -125,91 +97,62 @@ const ProfileScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: '#fff',
   },
-  content: {
-    flex: 1,
-    padding: 20,
-  },
-  profileSection: {
+  profileInfoContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 32,
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    marginBottom: 24,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  avatarContainer: {
-    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingTop: 16,
   },
   avatar: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginRight: 20,
   },
-  avatarText: {
-    fontSize: 32,
-    fontFamily: fontFamily.bold,
-    color: colors.white,
-  },
-  userName: {
-    fontSize: 24,
-    fontFamily: fontFamily.bold,
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 16,
-    fontFamily: fontFamily.regular,
-    color: colors.textSecondary,
-  },
-  menuSection: {
-    backgroundColor: colors.white,
-    borderRadius: 12,
-    marginBottom: 24,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.lightGray,
-  },
-  menuItemText: {
+  statsContainer: {
     flex: 1,
-    fontSize: 16,
-    fontFamily: fontFamily.medium,
-    color: colors.textPrimary,
-    marginLeft: 12,
-  },
-  logoutButton: {
-    backgroundColor: colors.error,
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 16,
-    borderRadius: 8,
-    marginBottom: 32,
+    justifyContent: 'space-around',
   },
-  logoutButtonText: {
-    color: colors.white,
-    fontSize: 16,
-    fontFamily: fontFamily.bold,
-    marginLeft: 8,
+  stat: {
+    alignItems: 'center',
+  },
+  statNumber: {
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    fontSize: 14,
+    color: 'gray',
+  },
+  displayName: {
+    fontWeight: 'bold',
+    marginHorizontal: 16,
+    marginTop: 8,
+  },
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 16,
+  },
+  button: {
+    backgroundColor: '#efefef',
+    paddingVertical: 8,
+    paddingHorizontal: 32,
+    borderRadius: 8,
+  },
+  buttonText: {
+    fontWeight: 'bold',
+  },
+  gridItem: {
+    width: itemSize,
+    height: itemSize,
+  },
+  gridImage: {
+    width: '100%',
+    height: '100%',
   },
 });
 
